@@ -1,0 +1,45 @@
+flowchart TD
+    subgraph INPUTS["Inputs"]
+        E[Email]
+        W[WhatsApp]
+        S[Slack]
+        J[JIRA ticket]
+        M[Meeting]
+        SC[Scheduled]
+    end
+
+    INPUTS --> IT
+
+    IT["Intake & triage\nPM or CEO · decide mode A or B"]
+
+    IT -->|Mode A| QE
+    IT -->|Mode B| RF
+
+    subgraph MODEA["Mode A — Lightweight"]
+        QE["Quick execution\nDeveloper or CEO · agent optional"]
+        QE --> SN1[/"memory/ session note"/]
+        SN1 --> CL["⚠ output lands anywhere"]
+        CL --> RR["Resolve & reply"]
+    end
+
+    subgraph MODEB["Mode B — Full Scrum"]
+        RF["Refinement\nCEO + PM · daily 08:00"]
+        RF --> DC1[/"docs/decisions/ · JIRA updated"/]
+        DC1 --> GR["Grooming\nAll · Friday 19:00 · estimate"]
+        GR --> SP["Sprint planning\nAll · Sunday 19:00 · scope"]
+        SP --> TS[/"tasks/current-sprint.md"/]
+    end
+
+    TS --> EX
+    RR --> EX
+
+    subgraph EX["Execution"]
+        SV["Developer\nDevelops · runs agent"]
+        AI["AI Agent\nWrites & edits code"]
+        MA["PM + CEO\nCoordinates · reviews"]
+        SL["QA\nTests DoD criteria"]
+        SN2[/"memory/ session note"/]
+    end
+
+    EX --> DC["Deploy & close\nDeploy · close JIRA · inform client"]
+    DC --> DC2[/"docs/decisions/ if architectural · JIRA closed"/]

@@ -1,0 +1,8 @@
+# digest/
+
+<!-- Landing zone for n8n daily digest PRs.
+     Files here are created automatically by the n8n daily-digest workflow at 3 AM.
+     The PM reviews the PR each morning and merges if content looks correct.
+     On merge, digest-router.yml routes each row to docs/ or memory/ automatically.
+     This folder is a staging area — it does not accumulate.
+     Format: YYYY-MM-DD.csv with header: type;project;title;content -->

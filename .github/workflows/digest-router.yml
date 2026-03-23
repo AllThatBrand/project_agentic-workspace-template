@@ -1,0 +1,48 @@
+name: Route Digest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'digest/**.csv'
+
+jobs:
+  route-digest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Detect merged digest file
+        id: detect
+        run: |
+          FILE=$(git diff-tree --no-commit-id -r --name-only HEAD \
+                 | grep '^digest/' | head -1)
+          echo "digest_file=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Route digest content
+        if: steps.detect.outputs.digest_file != ''
+        run: python scripts/route-digest.py "${{ steps.detect.outputs.digest_file }}"
+
+      - name: Commit routed files
+        run: |
+          git config user.name "agency-bot"
+          git config user.email "bot@example.com"
+          git add docs/ memory/
+          git diff --cached --quiet || (
+            git commit -m "chore: route digest ${{ steps.detect.outputs.digest_file }} [skip ci]" &&
+            git push
+          )
+
+  # Regenerate CONTEXT.md after routing is complete
+  refresh-context:
+    needs: route-digest
+    uses: ./.github/workflows/context-update.yml

@@ -1,0 +1,25 @@
+flowchart TD
+    CRON["3 AM · n8n cron"]
+
+    CRON --> SLACK["Slack API\nproject channels · last 24h"]
+    CRON --> GMAIL["Gmail API\nclient threads · last 24h"]
+
+    SLACK --> MERGE
+    GMAIL --> MERGE
+    MERGE["Merge sources\nadd source field per item"]
+
+    MERGE --> CLAUDE["Claude · classify & draft\ngroups by project · outputs CSV"]
+
+    CLAUDE --> PR["GitHub PR created\ndigest/YYYY-MM-DD · n8n via API"]
+
+    PR --> PM["PM reviews & merges\nreads CSV · approves"]
+
+    PM --> GHA["GitHub Actions routes files\ncommits to correct repo folders"]
+
+    GHA --> REPO["Repo updated\nagent has context for tomorrow"]
+
+    note1["PR contains:\n· one CSV per digest\n· typed + dated rows"]
+    note2["Classifies as:\n· decision\n· client-comms\n· question\n· mode-a"]
+
+    CLAUDE -.-> note2
+    PR -.-> note1

@@ -1,0 +1,24 @@
+flowchart LR
+    subgraph P1["Part 1 · auto on every merge"]
+        GHA1["GitHub Actions\ncontext-update.yml"]
+        CTX[".agent/CONTEXT.md\nalways current · ≤300 words"]
+        GHA1 -->|regenerates| CTX
+        CTX -->|contains| C1["· last updated timestamp\n· active sprint summary\n· last 3 decisions\n· open Mode A items"]
+    end
+
+    subgraph P2["Part 2 · local users (Cursor / VS Code)"]
+        SK["start-session skill\nrun once at session start"]
+        SK --> A1["1. git pull --rebase"]
+        SK --> A2["2. git log · show delta"]
+        SK --> A3["3. print CONTEXT.md"]
+        SK --> A4["4. open in editor"]
+        CR[".cursorrules\nread CONTEXT.md before any task"]
+    end
+
+    subgraph P3["Part 3 · Claude.ai web users"]
+        PI["Claude.ai project instructions\npin CONTEXT.md URL"]
+        SC["Session start convention\npaste CONTEXT.md as first message"]
+    end
+
+    CTX --> P2
+    CTX --> P3

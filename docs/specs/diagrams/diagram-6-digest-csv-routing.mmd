@@ -1,0 +1,14 @@
+flowchart TD
+    CSV["digest/YYYY-MM-DD.csv\ntype;project;title;content"]
+
+    CSV --> PARSE["parse_csv()\nline.split(';', 3)\nmaxsplit=3 — content is safe"]
+
+    PARSE --> VAL{"validate_row()\ntype · project · title\nrequired?"}
+
+    VAL -->|missing fields| ERR["✗ skip row\nlog error\nsys.exit(1)"]
+    VAL -->|unknown type| ERR
+
+    VAL -->|decision| RD["route_decision()\ndocs/decisions/\nYYYY-MM-DD-proj-slug.md"]
+    VAL -->|client-comms| RC["route_client_comms()\ndocs/client-comms/\nYYYY-MM-DD-proj-slug.md"]
+    VAL -->|question| RQ["route_question()\n[question] prefix\n→ docs/client-comms/"]
+    VAL -->|mode-a| RM["route_mode_a()\nappend row to\nmemory/quick-tasks.md"]

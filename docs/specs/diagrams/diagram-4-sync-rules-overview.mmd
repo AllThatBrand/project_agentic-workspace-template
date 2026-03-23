@@ -1,0 +1,19 @@
+flowchart LR
+    R1T["Every merge\nany → main"] -->|GH Actions\ncontext-update.yml| R1O[".agent/CONTEXT.md"]
+
+    R2T["Digest PR merge\ndigest/* → main"] -->|GH Actions\ndigest-router.yml| R2O["docs/\nmemory/"]
+    R2O -->|triggers| R1O
+
+    R3T["3 AM · daily\ncron"] -->|n8n\ndaily-digest| R3O["digest/YYYY-MM-DD.csv\nPR awaits PM"]
+
+    R4T["Sunday 20:00\nafter planning"] -->|n8n\nsprint-sync| R4O["tasks/current-sprint.md"]
+    R4O -->|triggers| R1O
+
+    R5T["Slack /session\nweb users"] -->|n8n\nsession-webhook| R5O["memory/sessions/\nYYYY-MM-DD.md"]
+    R5O -->|triggers| R1O
+
+    style R1O fill:#E1F5EE,stroke:#0F6E56
+    style R2O fill:#E1F5EE,stroke:#0F6E56
+    style R3O fill:#F1EFE8,stroke:#5F5E5A
+    style R4O fill:#E1F5EE,stroke:#0F6E56
+    style R5O fill:#E1F5EE,stroke:#0F6E56

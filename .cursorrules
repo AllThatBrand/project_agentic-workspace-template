@@ -1,0 +1,29 @@
+# {{CLIENT_NAME}} — Cursor agent rules
+
+## Before any task
+Always read .agent/CONTEXT.md before starting any work.
+If the file is missing or empty, alert the user before proceeding.
+
+## Session start
+When the user says "start session", "let's start", or "begin session":
+Run the skill defined in .agent/skills/start-session.md
+
+## Session end
+When the user says "end session", "wrap up", or "closing session":
+Run the skill defined in .agent/skills/end-session.md
+
+## Mode A logging
+When the user says "log this", "log mode a", or "log quick task":
+Run the skill defined in .agent/skills/log-mode-a.md
+
+## Standing rules
+Always apply the rules in .agent/instructions.md for the duration of the session.
+
+## JIRA
+Reference tickets as {{JIRA_PROJECT_KEY}}-[number]. Always check current-sprint.md before
+starting any task to confirm it is in scope for the active sprint.
+
+## Commits
+Never commit directly to main.
+Suggest commit messages in format: "session: YYYY-MM-DD · [summary] [skip ci]"
+Wait for user confirmation before committing.

@@ -1,0 +1,39 @@
+name: Update CONTEXT.md
+
+on:
+  push:
+    branches: [main]
+  workflow_call: # allows other workflows to trigger this one
+
+jobs:
+  update-context:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history needed for git log
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate CONTEXT.md
+        run: python scripts/generate-context.py
+        env:
+          JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY }}
+          PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+
+      - name: Commit if changed
+        run: |
+          git config user.name "agency-bot"
+          git config user.email "bot@example.com"
+          git diff --quiet .agent/CONTEXT.md || (
+            git add .agent/CONTEXT.md &&
+            git commit -m "chore: regenerate CONTEXT.md [skip ci]" &&
+            git push
+          )

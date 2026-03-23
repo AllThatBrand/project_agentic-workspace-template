@@ -1,0 +1,37 @@
+flowchart TD
+    ROOT["project-root/"]
+
+    ROOT --> AGENT[".agent/"]
+    ROOT --> DOCS["docs/"]
+    ROOT --> TASKS["tasks/"]
+    ROOT --> MEM["memory/"]
+    ROOT --> DIG["digest/"]
+    ROOT --> SCRIPTS["scripts/"]
+    ROOT --> GH[".github/workflows/"]
+    ROOT --> WEB["website/ (submodule)"]
+
+    AGENT --> CTX[("CONTEXT.md\n🤖 auto · every merge")]
+    AGENT --> PROJ[("project.md\n👤 human · once")]
+    AGENT --> INST[("instructions.md\n👤 human · once")]
+    AGENT --> SK["skills/"]
+    SK --> SS[("start-session.md\n🛠 agent skill")]
+    SK --> LM[("log-mode-a.md\n🛠 agent skill")]
+    SK --> ES[("end-session.md\n🛠 agent skill")]
+
+    DOCS --> DEC[("decisions/\n🤖 auto · digest")]
+    DOCS --> SPEC[("specs/sow-shared.md\n👤 human · kickoff")]
+    DOCS --> CC[("client-comms/\n🤖 auto · digest")]
+
+    TASKS --> CS[("current-sprint.md\n🤖 auto · Sunday")]
+    TASKS --> BL[("backlog.md\n👤 human")]
+
+    MEM --> QT[("quick-tasks.md\n🛠 agent skill")]
+    MEM --> SESS[("sessions/YYYY-MM-DD.md\n🛠 agent skill")]
+
+    DIG --> DCSV[("YYYY-MM-DD.csv\n🤖 auto · n8n PR")]
+
+    SCRIPTS --> GCP[("generate-context.py\n🤖 GH Actions")]
+    SCRIPTS --> RDP[("route-digest.py\n🤖 GH Actions")]
+
+    GH --> CUY[("context-update.yml")]
+    GH --> DRY[("digest-router.yml")]

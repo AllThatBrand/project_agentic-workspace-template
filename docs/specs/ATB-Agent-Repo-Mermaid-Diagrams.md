@@ -9,12 +9,7 @@ All diagrams from the workflow design session.
 ```mermaid
 flowchart TD
     subgraph INPUTS["Inputs"]
-        E[Email]
-        W[WhatsApp]
-        S[Slack]
-        J[JIRA ticket]
-        M[Meeting]
-        SC[Scheduled]
+        E[Email] ~~~ W[WhatsApp] ~~~ S[Slack] ~~~ J[JIRA ticket] ~~~ M[Meeting] ~~~ SC[Scheduled]
     end
 
     INPUTS --> IT

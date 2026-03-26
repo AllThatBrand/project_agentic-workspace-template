@@ -24,9 +24,6 @@ jobs:
 
       - name: Generate CONTEXT.md
         run: python scripts/generate-context.py
-        env:
-          JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY }}
-          PROJECT_NAME: ${{ vars.PROJECT_NAME }}
 
       - name: Commit if changed
         run: |

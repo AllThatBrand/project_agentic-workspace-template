@@ -107,7 +107,6 @@ if __name__ == "__main__":
 - Read .agent/project.md for client, stack, contacts
 - Read .agent/instructions.md for standing rules
 - Skills: .agent/skills/
-- JIRA project: {JIRA_KEY}
 - Memory: memory/MEMORY.md (do NOT use ~/.claude/ memory)
 """
 

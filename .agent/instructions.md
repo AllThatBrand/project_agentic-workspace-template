@@ -35,6 +35,16 @@ Read silently during start-session. Do not summarise back unless asked.
 - Do not deploy on Fridays (client preference)
 - Do not share client information outside this repo or the private Google Drive folder
 
+## Memory
+- Use `memory/` as the sole memory location for all persistent context.
+- Do NOT use the default Claude memory directory (~/.claude/projects/.../memory/).
+- Memory index lives at `memory/MEMORY.md`.
+- Write new memories as individual .md files inside `memory/` with frontmatter (name, description, type).
+- Update `memory/MEMORY.md` as a one-line-per-entry index.
+- Memory types: user, feedback, project, reference.
+- Session notes go in `memory/sessions/YYYY-MM-DD.md`.
+- Quick tasks go in `memory/quick-tasks.md`.
+
 ## When unsure
 - Stop and ask the CEO or the PM before proceeding
 - Document the uncertainty in the session note under "open threads"

@@ -76,7 +76,6 @@ website/           Git submodule → {{CLIENT_NAME}} website repo
 - [ ] Fill in all `{{PLACEHOLDERS}}` in `.agent/project.md`
 - [ ] Write project-specific rules in `.agent/instructions.md`
 - [ ] Fill in `docs/specs/sow-shared.md` from the shared SoW
-- [ ] Set GitHub repo variables: `PROJECT_NAME={{CLIENT_NAME}}`, `JIRA_PROJECT_KEY={{JIRA_PROJECT_KEY}}`
 - [ ] Add website repo as submodule: `git submodule add [url] website/`
 - [ ] Run `python scripts/generate-context.py` locally to verify
 - [ ] Push and confirm `context-update.yml` runs cleanly

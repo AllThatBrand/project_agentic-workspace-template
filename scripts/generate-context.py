@@ -108,6 +108,7 @@ if __name__ == "__main__":
 - Read .agent/instructions.md for standing rules
 - Skills: .agent/skills/
 - JIRA project: {JIRA_KEY}
+- Memory: memory/MEMORY.md (do NOT use ~/.claude/ memory)
 """
 
     out = ROOT / ".agent" / "CONTEXT.md"

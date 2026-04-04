@@ -11,7 +11,7 @@ Env vars: PROJECT_NAME, JIRA_PROJECT_KEY
 import os
 import re
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT         = Path(__file__).parent.parent
@@ -75,7 +75,7 @@ def read_open_mode_a():
 
 
 if __name__ == "__main__":
-    now         = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    now         = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     sprint_name, sprint_end, tasks = read_sprint()
     decisions   = read_last_decisions()
     mode_a      = read_open_mode_a()

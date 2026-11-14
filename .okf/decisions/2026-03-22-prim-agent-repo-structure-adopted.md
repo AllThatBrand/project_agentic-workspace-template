@@ -1,3 +1,9 @@
+---
+type: Decision
+title: Agent-optimised repo structure adopted
+status: draft
+generated: {by: process:atb-okf-migration/0.1.0, at: 2026-11-14T21:45:21+01:00}
+---
 # Agent-optimised repo structure adopted
 
 **Date:** 2026-03-22

@@ -1,1 +1,3 @@
-.agent/CONTEXT.md
+# Agent entry
+
+@AGENTS.md

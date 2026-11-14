@@ -1,3 +1,5 @@
+> Superseded by `.okf/decisions/2026-11-13-okf-adopted.md`; describes the v1 layout and the never-built n8n routes.
+
 # Agent-Optimised Repo — Mermaid Diagrams
 
 All diagrams from the workflow design session.

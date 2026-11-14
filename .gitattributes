@@ -1,0 +1,12 @@
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.png -text
+*.jpg -text
+*.pdf -text
+*.svg text eol=lf
+.okf/** text eol=lf
+inbox/** text eol=lf

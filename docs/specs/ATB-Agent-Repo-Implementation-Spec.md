@@ -1,3 +1,5 @@
+> Superseded by `.okf/decisions/2026-11-13-okf-adopted.md`; describes the v1 layout and the never-built n8n routes.
+
 # {{AGENCY_NAME}} — Agent-Optimised Project Repo
 ## Implementation Specification
 **Version 0.5 · 2026-03-23**

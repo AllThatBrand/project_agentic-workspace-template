@@ -1,0 +1,5 @@
+---
+description: "OKF agent entry pointer"
+alwaysApply: true
+---
+@AGENTS.md

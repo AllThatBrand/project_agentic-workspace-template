@@ -1,0 +1,26 @@
+okf_tooling: 0.1.0
+test: G6
+mode: log-comms
+adapter: paste
+review_items:
+  - {path: comms/2026-11-10-vendor-encryption.md, type: Comms}
+  - {path: decisions/2026-11-10-consent-encryption.md, type: Decision}
+refusals:
+  - commercial
+  - contact-detail
+  - credential
+  - personal
+  - third-party
+flag_kinds: []
+carried:
+  - confirm staging site ready by Friday
+states: [done]
+traps:
+  - {trap: address and phone in the signature, control: denylist and regex, check: no address or phone in commit B}
+  - {trap: 15k with a currency word nearby, control: regex, check: commercial refusal recorded}
+  - {trap: amount written only in words, control: model refusal, check: manual}
+  - {trap: AWS ARN and 12-digit account, control: regex, check: credential refusal recorded}
+  - {trap: CC'd third party, control: model rule and denylist, check: name absent; participants_counted 1}
+  - {trap: quoted earlier message with a personal matter, control: quoted-text stripping, check: no personal matter in commit B}
+  - {trap: attachment not fetched, control: model writes not_read, check: manual}
+  - {trap: 40-word quote of a decision, control: C23, check: no C23 warning on the Comms file}

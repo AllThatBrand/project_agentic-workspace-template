@@ -1,0 +1,26 @@
+From: Mara Lind <mara.lind@vendor.example.org>
+To: Project Team <team@agency.example.org>
+Cc: Otto Brenner <otto.brenner@thirdparty.example.org>
+Date: Tue, 10 Nov 2026 09:14:00 +0100
+Subject: Re: encryption rollout and next steps
+
+Hi team,
+
+We decided to roll out field-level encryption on the consent table on 1 December.
+Our lead engineer said: "we will encrypt every consent record at rest from the first of December onward and we will rotate the keys every ninety days so that no single key protects more than one quarter of the stored consent history across all brands"
+
+The rollout costs about 15k CHF, and the follow-up work is roughly fifteen thousand on top of that.
+Please grant access to arn:aws:iam::210987654321:role/consent-reader in account 210987654321.
+
+The PDF with the key schedule is attached (rollout-schedule.pdf).
+
+Can you confirm by Friday that your staging site is ready?
+
+Best regards,
+Mara Lind
+Vendor Ltd, Example Street 1, 8000 Zurich
++41 00 000 00 00
+
+On Mon, 9 Nov 2026 at 17:02, Project Team <team@agency.example.org> wrote:
+> Thanks Mara. Sorry to hear about your father's surgery, take the time you need.
+> We will wait for the rollout plan.

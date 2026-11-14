@@ -1,0 +1,179 @@
+# okf-tooling: 0.1.0
+# OKF knowledge checks (design "OKF knowledge pipeline", item 9).
+# Optional steps are gated by a probe step, never by a job-level hashFiles() (not allowed there).
+name: okf
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: okf-check
+        id: okf
+        shell: bash
+        run: |
+          set +e
+          python scripts/okf-check.py | tee okf-check.out
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit $code
+      - name: probe .okf
+        id: probe
+        shell: bash
+        run: |
+          if [ -d .okf ]; then echo "run=1" >> "$GITHUB_OUTPUT"; fi
+      - name: OKF conformance (okf_validate.py)
+        if: steps.probe.outputs.run == '1'
+        shell: bash
+        run: |
+          pip install --quiet "pyyaml>=6,<7"
+          python scripts/okf_validate.py .okf
+      - name: PR comment
+        if: always() && github.event_name == 'pull_request' && runner.os == 'Linux' && steps.okf.outputs.code != ''
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const out = fs.existsSync('okf-check.out') ? fs.readFileSync('okf-check.out', 'utf8') : '';
+            const failed = /^FAIL/m.test(out);
+            const body = `**okf-check: ${failed ? 'FAIL' : 'PASS'}**\n\n\`\`\`\n${out.slice(-6000)}\n\`\`\``;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number, body });
+
+  unit:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: probe tests
+        id: probe
+        shell: bash
+        run: |
+          if [ -f tests/okf/test_okf_check.py ]; then echo "run=1" >> "$GITHUB_OUTPUT"; fi
+      - name: syntax check
+        if: steps.probe.outputs.run == '1'
+        run: python -c "import ast; ast.parse(open('scripts/okf-check.py', encoding='utf-8').read())"
+      - name: unit tests
+        if: steps.probe.outputs.run == '1'
+        shell: bash
+        run: |
+          git config --global user.email "ci@example.invalid"
+          git config --global user.name "CI"
+          python -m unittest discover -s tests/okf -t . -v
+
+  hook:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: probe hook
+        id: probe
+        run: |
+          if [ -f scripts/session-start-briefing.sh ]; then echo "run=1" >> "$GITHUB_OUTPUT"; fi
+      - name: hook with Python
+        if: steps.probe.outputs.run == '1'
+        run: |
+          set +e
+          bash scripts/session-start-briefing.sh > hook1.out; code=$?
+          set -e
+          cat hook1.out
+          test "$code" = 0
+          debt=$(grep -n '^== OKF debt ==' hook1.out | head -1 | cut -d: -f1)
+          marker=$(grep -n 'briefing complete' hook1.out | head -1 | cut -d: -f1)
+          test -n "$debt" && test -n "$marker" && test "$debt" -lt "$marker"
+      - name: hook without Python (ubuntu only)
+        if: steps.probe.outputs.run == '1' && runner.os == 'Linux'
+        run: |
+          tmp=$(mktemp -d)
+          for t in bash git sed grep cat head; do ln -s "$(command -v $t)" "$tmp/$t"; done
+          set +e
+          env -i HOME="$HOME" PATH="$tmp" /bin/bash scripts/session-start-briefing.sh > hook2.out; code=$?
+          set -e
+          cat hook2.out
+          test "$code" = 0
+          fail=$(grep -n 'debt report unavailable: run start-session' hook2.out | head -1 | cut -d: -f1)
+          marker=$(grep -n 'briefing complete' hook2.out | head -1 | cut -d: -f1)
+          test -n "$fail" && test -n "$marker" && test "$fail" -lt "$marker"
+
+  weekly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: probe config
+        id: probe
+        run: |
+          if [ -f okf.config ]; then echo "run=1" >> "$GITHUB_OUTPUT"; fi
+      - name: regenerate log.md
+        if: steps.probe.outputs.run == '1'
+        run: |
+          python scripts/okf-check.py log
+          if ! git diff --quiet -- .okf/log.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: okf log" -- .okf/log.md
+            git push
+          fi
+      - name: weekly debt issue
+        if: steps.probe.outputs.run == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          week=$(date -u +%G-W%V)
+          title="OKF debt — week $week"
+          { python scripts/okf-check.py --report debt; echo; python scripts/okf-check.py --report spot-check --week "$week"; } > report.md
+          num=$(gh issue list --state all --search "\"$title\" in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -1)
+          if [ -n "$num" ]; then
+            gh issue edit "$num" --body-file report.md
+          else
+            gh issue create --title "$title" --body-file report.md
+          fi

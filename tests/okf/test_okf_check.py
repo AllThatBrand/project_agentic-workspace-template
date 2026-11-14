@@ -469,6 +469,30 @@ class RunTests(Base):
         self.assertNotIn("C6", out, out)
 
 
+class CollectTests(RunTests):
+    def test_collected_pointer_note_deleted_by_commit_b(self):
+        self.bundle(); self.repo.commit("init")
+        a = self.start("2026-01-02-open")
+        b = self.start("2026-01-02-mail", mode="log-comms")
+        for slug in (a, b):
+            for st in ("screened", "inbox-committed"):
+                self.okf("run", "set", slug, "--state", st)
+            self.repo.write(f"inbox/{slug}.md", "pointer\n")
+            self.repo.commit(f"inbox: {slug}", f"inbox/{slug}.md")
+        self.repo.write(".okf/comms/2026-01-02-mail.md", "x\n")
+        self.okf("run", "add-path", b, ".okf/comms/2026-01-02-mail.md")
+        self.okf("run", "set", b, "--state", "drafted"); self.okf("run", "set", b, "--state", "waiting")
+        self.okf("run", "set", a, "--state", "drafted")
+        self.assertEqual(self.okf("run", "collect", a, b)[0], 0)
+        self.okf("run", "set", a, "--state", "checked"); self.okf("run", "review", a)
+        self.assertEqual(self.okf("stamp", "--run", a)[0], 0)
+        self.okf("carried", "--run", a); self.okf("index", "--run", a)
+        self.assertEqual(self.okf("run", "commit", a)[0], 0)
+        self.assertFalse((self.repo.root / f"inbox/{b}.md").exists())
+        self.assertEqual(json.loads(okf.run_path(b).read_text())["state"], "done")
+        self.assertIn("Knowledge-Mode: end-session log-comms", run_git(self.repo.root, "log", "-1", "--format=%B"))
+
+
 class CarriedTests(Base):
     def test_ids_unique_and_idempotent(self):
         self.bundle(); self.repo.commit("init")

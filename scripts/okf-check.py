@@ -1609,14 +1609,19 @@ def run_commit(slug: str) -> int:
                 paths |= {"inbox/carried.md", ".okf/.screen-allow"}
                 if r["mode"] != "migration-review":
                     paths.add(f"inbox/{slug}.md")
-                quick = [p for p in r.get("quick_notes", [])]
-                paths |= set(quick)
+                # pointer notes of collected log-comms runs are deleted in the same commit B
+                notes = [f"inbox/{c['slug']}.md" for c in r.get("collected", [])]
+                if r["mode"] != "migration-review":
+                    notes.append(f"inbox/{slug}.md")
+                paths |= set(notes)
                 present = sorted(p for p in paths if (ROOT / p).exists())
                 gone = sorted(p for p in paths if not (ROOT / p).exists() and head_has(p))
-                if r["mode"] != "migration-review" and (ROOT / "inbox" / f"{slug}.md").exists():
-                    (ROOT / "inbox" / f"{slug}.md").unlink()
-                    present.remove(f"inbox/{slug}.md")
-                    gone.append(f"inbox/{slug}.md")
+                for note in notes:
+                    if (ROOT / note).exists():
+                        (ROOT / note).unlink()
+                        present.remove(note)
+                        if head_has(note):
+                            gone.append(note)
                 if present:
                     git("add", "--", *present)
                 if gone:

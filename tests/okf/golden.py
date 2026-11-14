@@ -29,6 +29,17 @@ def bundle_rel(path: str) -> str:
     return path[len(".okf/"):] if path.startswith(".okf/") else path
 
 
+DATED = ("decisions/", "findings/", "comms/")
+
+
+def match_key(path: str) -> str:
+    """Dated concepts match on folder + date (the words after the date are model wording)."""
+    if path.startswith(DATED):
+        folder, name = path.split("/", 1)
+        return f"{folder}/{name[:10]}"
+    return path
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print(__doc__)
@@ -45,16 +56,27 @@ def main(argv: list[str]) -> int:
     accepted = {bundle_rel(a["path"]) for a in run.get("review", {}).get("accepted", [])}
     accepted |= {bundle_rel(p) for p in run.get("paths", {})}
     want = {i["path"]: i.get("type") for i in exp.get("review_items", []) if isinstance(i, dict)}
-    for path in sorted(set(want) - accepted):
-        problems.append(f"missing review item: {path}")
-    for path in sorted(accepted - set(want)):
-        problems.append(f"unexpected review item: {path}")
-    for path, typ in want.items():
+    got_keys: dict[str, list[str]] = {}
+    for p in accepted:
+        got_keys.setdefault(match_key(p), []).append(p)
+    want_keys: dict[str, list[str]] = {}
+    for p in want:
+        want_keys.setdefault(match_key(p), []).append(p)
+    for k in sorted(want_keys):
+        missing = len(want_keys[k]) - len(got_keys.get(k, []))
+        for p in want_keys[k][len(want_keys[k]) - missing:] if missing > 0 else []:
+            problems.append(f"missing review item: {p}")
+    for k in sorted(got_keys):
+        extra = len(got_keys[k]) - len(want_keys.get(k, []))
+        for p in sorted(got_keys[k])[len(got_keys[k]) - extra:] if extra > 0 else []:
+            problems.append(f"unexpected review item: {p}")
+    for path in accepted:
         cand = Path.cwd() / ".okf" / path
-        if cand.exists():
+        exp_types = [want[w] for w in want_keys.get(match_key(path), [])]
+        if cand.exists() and exp_types:
             got = okf.Doc(path, okf.read_text(cand)).meta.get("type")
-            if typ and got != typ:
-                problems.append(f"{path}: type {got}, expected {typ}")
+            if got not in exp_types:
+                problems.append(f"{path}: type {got}, expected {exp_types[0]}")
 
     got_ref = sorted(r["category"] for r in run.get("refusals", []))
     want_ref = sorted(exp.get("refusals", []))
@@ -72,8 +94,8 @@ def main(argv: list[str]) -> int:
     if states and run.get("state") not in states:
         problems.append(f"state {run.get('state')}, expected one of {states}")
 
-    items = len(want)
-    print(f"{test}: {items} review items, {len(got_ref)} refusals, flags {got_flags}, state {run.get('state')}")
+    print(f"{test}: run {len(accepted)} review items (expected {len(want)}), {len(got_ref)} refusals, "
+          f"flags {got_flags}, state {run.get('state')}")
     for p in problems:
         print(f"  MISMATCH {p}")
     print("Manual checklist (sign in the test log):")

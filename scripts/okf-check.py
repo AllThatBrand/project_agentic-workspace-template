@@ -1669,6 +1669,19 @@ def run_resume(slug: str) -> int:
 QUOTE_CUT = [re.compile(r"^On .+ wrote:$"), re.compile(r"^-----Original Message-----$")]
 SIGNOFF = re.compile(r"^(Best|Regards|Thanks|Cheers|Kind regards|Best regards)\b", re.I)
 NAME2 = re.compile(r"\b([A-ZÄÖÜ][a-zäöüéèàß]+(?:-[A-Z][a-z]+)?) ([A-ZÄÖÜ][a-zäöüéèàß]+(?:-[A-Z][a-z]+)?)\b")
+SENTENCE_START = re.compile(r"(?:^|[.!?:;]\s+|^\s*(?:[-*>]|\d+\.|#+)\s+|^\s*\*\*[^*]+\*\*:?\s+)$")
+
+
+def name_candidates(line: str, known: set[str], orgs: set[str]):
+    """Capitalised two-word names that are not a known Person, a participant, an organisation
+    or title already in the bundle, and not just a capitalised word at the start of a sentence."""
+    for m in NAME2.finditer(line):
+        name = m.group(0)
+        if name in known or any(name in o for o in orgs):
+            continue
+        if SENTENCE_START.search(line[: m.start()]):
+            continue
+        yield name
 
 
 def strip_quoted(text: str) -> str:
@@ -1761,16 +1774,21 @@ def cmd_screen(args: list[str]) -> int:
         allow = load_allow()
         known = {str(x) for x in ((cfg.get("screen") or {}).get("allow_names") or [])} if isinstance(cfg.get("screen"), dict) else set()
         known |= {str(x) for x in r.get("participants", [])}
+        orgs: set[str] = set()
         for p in concept_paths():
+            d = Doc.load(p)
             if p.startswith(".okf/people/"):
-                known.add(str(Doc.load(p).meta.get("title", "")))
+                known.add(str(d.meta.get("title", "")))
+                if d.atb.get("organisation"):
+                    orgs.add(str(d.atb["organisation"]))
+            elif d.meta.get("type") in ("Client", "System"):
+                orgs.add(str(d.meta.get("title", "")))
         new_flags = []
         for p in paths:
             new_flags += scan_file(p, r.get("denylist", []), allow)
             for n, line in scannable(read_text(ROOT / p)):
-                for a, b in NAME2.findall(line):
-                    name = f"{a} {b}"
-                    if name in known or f"{p}:{sha8(line)}:name-not-known" in allow:
+                for name in name_candidates(line, known, orgs):
+                    if f"{p}:{sha8(line)}:name-not-known" in allow:
                         continue
                     new_flags.append({"path": p, "line": n, "kind": "name-not-known", "sha8": sha8(line), "name": name})
         keys = {(f["path"], f["line"], f["kind"]) for f in r["flags"]}

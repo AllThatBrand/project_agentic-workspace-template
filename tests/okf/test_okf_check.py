@@ -230,6 +230,22 @@ class ParserTests(unittest.TestCase):
         self.assertNotEqual(h, okf.concept_hash(base.replace("Body", "Changed")))
 
 
+class NameHeuristicTests(unittest.TestCase):
+    def names(self, line, known=(), orgs=()):
+        return list(okf.name_candidates(line, set(known), set(orgs)))
+
+    def test_skips_sentence_starts_and_orgs(self):
+        self.assertEqual(self.names("- Use Composio for lookups."), [])
+        self.assertEqual(self.names("Relays Blu questions."), [])
+        self.assertEqual(self.names("Done. Then Brett Martin replied."), [])
+        self.assertEqual(self.names("a contact at Pope Tech", orgs={"Pope Tech"}), [])
+        self.assertEqual(self.names("the Katie Couric Prod site", orgs={"Katie Couric Media"}), [])
+
+    def test_flags_unknown_people(self):
+        self.assertEqual(self.names("we asked Jane Roe about it"), ["Jane Roe"])
+        self.assertEqual(self.names("we asked Jane Roe", known={"Jane Roe"}), [])
+
+
 # --------------------------------------------------------------------------- regex pack
 
 class RegexTests(unittest.TestCase):

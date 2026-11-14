@@ -57,7 +57,9 @@ improvise git commands beyond the ones named here.
 
 For each item in the note decide one of: a concept (Decision, Rule, Finding, Person, Client,
 System, Runbook, Comms), a ticket link, a carried item (an internal follow-up with no ticket), or
-"neither" (not lasting).
+"neither" (not lasting). Transient environment state (an expired login, disk space, a one-off
+search miss) is "neither", never a tool fact. A name you leave out of a note because the person
+is not a participant is still a refusal: record it with `run refuse --category third-party`.
 
 - Before creating a file, `okf-check --closest "<title>" [--type T]` and edit the closest file if
   it is the same subject.

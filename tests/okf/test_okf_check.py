@@ -103,7 +103,7 @@ class Repo:
             import os, sys
             a = sys.argv[1:]
             if a[:2] == ["api", "user"]:
-                if os.environ.get("FAKE_GH_LOGIN", "tester") == "":
+                if os.environ.get("FAKE_GH_LOGIN", "tester") == "-":  # "-" = logged out (Windows drops empty vars)
                     sys.exit(1)
                 print(os.environ.get("FAKE_GH_LOGIN", "tester")); sys.exit(0)
             if a and a[0] == "api" and "/collaborators/" in a[1]:
@@ -376,7 +376,7 @@ class RunTests(Base):
         self.bundle(); self.repo.commit("init")
         s = self.start()
         self.review_ready(s, [".okf/rules/commits.md"])
-        os.environ["FAKE_GH_LOGIN"] = ""
+        os.environ["FAKE_GH_LOGIN"] = "-"
         self.assertEqual(self.okf("stamp", "--run", s)[0], 1)
         self.assertEqual(json.loads(okf.run_path(s).read_text())["failed"]["step"], 6)
         del os.environ["FAKE_GH_LOGIN"]

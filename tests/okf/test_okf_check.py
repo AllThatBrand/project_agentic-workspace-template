@@ -230,6 +230,35 @@ class ParserTests(unittest.TestCase):
         self.assertNotEqual(h, okf.concept_hash(base.replace("Body", "Changed")))
 
 
+class StripQuotedTests(unittest.TestCase):
+    def test_keeps_own_header_block(self):
+        text = "From: A <a@example.org>\nTo: B\nCc: C\nDate: 2026-01-01\n\nHello.\nOn Mon, X wrote:\n> old"
+        out = okf.strip_quoted(text)
+        self.assertIn("Hello.", out)
+        self.assertIn("Date: 2026-01-01", out)
+        self.assertNotIn("old", out)
+
+    def test_cuts_forwarded_header_in_body(self):
+        out = okf.strip_quoted("Hi\n\nFrom: X\nSent: today\nold text")
+        self.assertEqual(out.strip(), "Hi")
+
+
+class NameHeuristicTests(unittest.TestCase):
+    def names(self, line, known=(), orgs=()):
+        return list(okf.name_candidates(line, set(known), set(orgs)))
+
+    def test_skips_sentence_starts_and_orgs(self):
+        self.assertEqual(self.names("- Use Composio for lookups."), [])
+        self.assertEqual(self.names("Relays Blu questions."), [])
+        self.assertEqual(self.names("Done. Then Brett Martin replied."), [])
+        self.assertEqual(self.names("a contact at Pope Tech", orgs={"Pope Tech"}), [])
+        self.assertEqual(self.names("the Katie Couric Prod site", orgs={"Katie Couric Media"}), [])
+
+    def test_flags_unknown_people(self):
+        self.assertEqual(self.names("we asked Jane Roe about it"), ["Jane Roe"])
+        self.assertEqual(self.names("we asked Jane Roe", known={"Jane Roe"}), [])
+
+
 # --------------------------------------------------------------------------- regex pack
 
 class RegexTests(unittest.TestCase):
@@ -303,6 +332,20 @@ class CliTests(Base):
         self.assertIn("+41 00 000 00 00", deny)
         self.assertTrue(any(d.startswith("otto.brenner@") for d in deny))
         self.okf("run", "abandon", "2026-11-10-g6")
+
+    def test_writers_are_not_denylisted(self):
+        self.bundle(); self.repo.commit("init")
+        code, out = self.okf("run", "start", "--mode", "log-comms", "--slug", "2026-11-10-thread")
+        scratch = Path(out.split("scratch: ")[1].split()[0])
+        (scratch / "messages").mkdir()
+        (scratch / "messages" / "01.txt").write_text("From: Ann Writer <ann@a.example.org>\nCc: Ann Writer <ann@a.example.org>, Cee Only <cee@b.example.org>\nDate: x\n\nHello\n")
+        (scratch / "messages" / "02.txt").write_text("From: Bob Other <bob@a.example.org>\nCc: Ann Writer <ann@a.example.org>\nDate: y\n\nReply\n")
+        self.okf("screen", "--pre", "--run", "2026-11-10-thread")
+        deny = json.loads(okf.run_path("2026-11-10-thread").read_text())["denylist"]
+        self.assertIn("Cee Only", deny)
+        self.assertNotIn("Ann Writer", deny)
+        self.assertFalse(any(d.startswith("ann@") for d in deny))
+        self.okf("run", "abandon", "2026-11-10-thread")
 
     def test_screen_post_without_run(self):
         self.bundle()

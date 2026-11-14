@@ -1669,11 +1669,31 @@ def run_resume(slug: str) -> int:
 QUOTE_CUT = [re.compile(r"^On .+ wrote:$"), re.compile(r"^-----Original Message-----$")]
 SIGNOFF = re.compile(r"^(Best|Regards|Thanks|Cheers|Kind regards|Best regards)\b", re.I)
 NAME2 = re.compile(r"\b([A-ZÄÖÜ][a-zäöüéèàß]+(?:-[A-Z][a-z]+)?) ([A-ZÄÖÜ][a-zäöüéèàß]+(?:-[A-Z][a-z]+)?)\b")
+SENTENCE_START = re.compile(r"(?:^|[.!?:;]\s+|^\s*(?:[-*>]|\d+\.|#+)\s+|^\s*\*\*[^*]+\*\*:?\s+)$")
+
+
+def name_candidates(line: str, known: set[str], orgs: set[str]):
+    """Capitalised two-word names that are not a known Person, a participant, an organisation
+    or title already in the bundle, and not just a capitalised word at the start of a sentence."""
+    for m in NAME2.finditer(line):
+        name = m.group(0)
+        if name in known or any(name in o for o in orgs):
+            continue
+        if SENTENCE_START.search(line[: m.start()]):
+            continue
+        yield name
 
 
 def strip_quoted(text: str) -> str:
+    """Strip quoted and forwarded text. A leading header block (lines up to the first blank line
+    that all look like `Name: value`) is the message's own header and is kept."""
     lines = text.split("\n")
     out = []
+    head = 0
+    while head < len(lines) and re.match(r"^[A-Za-z-]+: ", lines[head]):
+        head += 1
+    if head and head < len(lines) and not lines[head].strip():
+        out, lines = lines[:head], lines[head:]
     for i, l in enumerate(lines):
         if l.startswith(">"):
             continue
@@ -1738,7 +1758,16 @@ def cmd_screen(args: list[str]) -> int:
                     text = read_text(p)
                     deny += denylist_from(text)
                     p.write_text(strip_quoted(text), encoding="utf-8")
-            r["denylist"] = sorted(set(deny))
+            writers: set[str] = set()
+            for p in message_texts(scratch) if scratch.exists() else []:
+                if p.suffix != ".json":
+                    for m in re.finditer(r"(?mi)^From:\s*(.*)$", read_text(p)):
+                        val = m.group(1)
+                        writers |= {a.lower() for a in PATTERNS[0][1].findall(val)}
+                        nm = re.sub(r"<[^>]*>|\"", "", val).strip()
+                        if nm:
+                            writers.add(nm.lower())
+            r["denylist"] = sorted({d for d in deny if d.lower() not in writers})
             save_run(r)
         print(f"screen --pre: {len(r['denylist'])} denylist entries; quoted text stripped")
         return 0
@@ -1761,21 +1790,35 @@ def cmd_screen(args: list[str]) -> int:
         allow = load_allow()
         known = {str(x) for x in ((cfg.get("screen") or {}).get("allow_names") or [])} if isinstance(cfg.get("screen"), dict) else set()
         known |= {str(x) for x in r.get("participants", [])}
+        orgs: set[str] = set()
         for p in concept_paths():
+            d = Doc.load(p)
             if p.startswith(".okf/people/"):
-                known.add(str(Doc.load(p).meta.get("title", "")))
+                known.add(str(d.meta.get("title", "")))
+                for key in ("organisation", "role"):
+                    if d.atb.get(key):
+                        orgs.add(str(d.atb[key]))
+            elif d.meta.get("type") in ("Client", "System"):
+                orgs.add(str(d.meta.get("title", "")))
+        low_known = {k.lower() for k in known}
+        low_orgs = [o.lower() for o in orgs]
+        deny = [e for e in r.get("denylist", [])
+                if e.lower() not in low_known and not any(e.lower() in o for o in low_orgs)]
         new_flags = []
         for p in paths:
-            new_flags += scan_file(p, r.get("denylist", []), allow)
+            new_flags += scan_file(p, deny, allow)
             for n, line in scannable(read_text(ROOT / p)):
-                for a, b in NAME2.findall(line):
-                    name = f"{a} {b}"
-                    if name in known or f"{p}:{sha8(line)}:name-not-known" in allow:
+                for name in name_candidates(line, known, orgs):
+                    if f"{p}:{sha8(line)}:name-not-known" in allow:
                         continue
                     new_flags.append({"path": p, "line": n, "kind": "name-not-known", "sha8": sha8(line), "name": name})
-        keys = {(f["path"], f["line"], f["kind"]) for f in r["flags"]}
+        # a re-scan replaces the earlier flags of the scanned paths
+        r["flags"] = [f for f in r["flags"] if f["path"] not in paths]
+        seen = set()
         for fl in new_flags:
-            if (fl["path"], fl["line"], fl["kind"]) not in keys:
+            k = (fl["path"], fl["line"], fl["kind"])
+            if k not in seen:
+                seen.add(k)
                 r["flags"].append(fl)
         save_run(r)
     for i, fl in enumerate(r["flags"], start=1):

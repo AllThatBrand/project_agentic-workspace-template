@@ -31,3 +31,10 @@ python tests/okf/golden.py G6 "$(git rev-parse --git-common-dir)/okf/run-<slug>.
 
 Exit 0 means every scripted check matched; the printed checklist covers judgment items, which
 are signed in the test log.
+
+## Re-running a golden test
+
+The sandbox is throwaway. To repeat a test cleanly: `git reset --hard <commit before the run>`,
+`git push --force-with-lease origin main`, and delete
+`$(git rev-parse --git-common-dir)/okf/run-<slug>.json`. Log every attempt, including failed
+ones, in the test log; a test re-run until it passes measures nothing.

@@ -1418,6 +1418,8 @@ def gh_login(cfg: dict) -> str:
 
 
 def cmd_stamp(args: list[str]) -> int:
+    """Step 6 (spec 4.6). Files changed since review go back to review and are not stamped; the
+    unchanged ones are stamped now. Files stamped earlier in this run are never stamped twice."""
     cfg = load_config()
     slug = opt(args, "--run")
     if not slug:
@@ -1428,26 +1430,25 @@ def cmd_stamp(args: list[str]) -> int:
             r["state"], r["failed"] = "reviewed", None
         if r["state"] != "reviewed":
             raise Refuse(f"run {slug} is {r['state']}; stamp needs state reviewed")
-        changed = [a["path"] for a in r["review"]["accepted"] if blob_of(a["path"]) != a["blob"]]
-        if changed:
-            transition(r, "checked")
-            save_run(r)
-            raise Refuse("changed after review, back to review: " + ", ".join(changed))
         try:
             login = gh_login(cfg)
         except Fail as e:
             fail_run(r, 6, str(e), "reviewed")
+        done = set(r.get("stamped", []))
+        changed = [a["path"] for a in r["review"]["accepted"]
+                   if a["path"] not in done and blob_of(a["path"]) != a["blob"]]
         now = now_iso()
-        accepted = [a["path"] for a in r["review"]["accepted"]]
+        accepted = [a["path"] for a in r["review"]["accepted"] if a["path"] not in changed]
         superseded = {}
         for p in accepted:
             d = Doc.load(p)
             sup = d.atb.get("supersedes")
             if sup:
                 target = rel((ROOT / p).parent / sup)
-                if target in r["paths"]:
+                if target in r["paths"] and target not in changed:
                     superseded[target] = Path(p).name
-        for p in accepted + [t for t in superseded if t not in accepted]:
+        todo = [p for p in accepted + [t for t in superseded if t not in accepted] if p not in done]
+        for p in todo:
             d = Doc.load(p)
             if d.error:
                 continue
@@ -1467,10 +1468,17 @@ def cmd_stamp(args: list[str]) -> int:
                 if a["path"] == p:
                     a["blob"] = blob_of(p)
             r["paths"][p]["blob"] = blob_of(p)
+            done.add(p)
+        r["stamped"] = sorted(done)
         r["reviewer"] = login
+        if changed:
+            r["review"]["accepted"] = [a for a in r["review"]["accepted"] if a["path"] not in changed]
+            transition(r, "checked")
+            save_run(r)
+            raise Refuse(f"stamped {len(todo)}; changed after review, back to review: " + ", ".join(changed))
         transition(r, "stamped")
         save_run(r)
-    print(f"stamped {len(accepted)} files as human:{login}")
+    print(f"stamped {len(todo)} files as human:{login}")
     return 0
 
 

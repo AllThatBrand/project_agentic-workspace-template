@@ -24,27 +24,16 @@ Read silently during start-session. Do not summarise back unless asked.
 - Check mobile breakpoints after any layout change
 
 ## Commit conventions
-- Never commit directly to main — always use a branch
-- Automation commits: `chore: [description] [skip ci]`
-- Session commits: `session: YYYY-MM-DD · [summary] [skip ci]`
-- Digest routing: `chore: route digest YYYY-MM-DD [skip ci]`
 - Wait for user confirmation before committing
+- Knowledge commits (`inbox:`, `knowledge:`) are written by end-session; do not write them by hand
 
 ## Never do
-- Do not commit directly to main — always use a branch
 - Do not deploy on Fridays (client preference)
 - Do not share client information outside this repo or the private Google Drive folder
 
-## Memory
-- Use `memory/` as the sole memory location for all persistent context.
-- Do NOT use the default Claude memory directory (~/.claude/projects/.../memory/).
-- Memory index lives at `memory/MEMORY.md`.
-- Write new memories as individual .md files inside `memory/` with frontmatter (name, description, type).
-- Update `memory/MEMORY.md` as a one-line-per-entry index.
-- Memory types: user, feedback, project, reference.
-- Session notes go in `memory/sessions/YYYY-MM-DD.md`.
-- Quick tasks go in `memory/quick-tasks.md`.
+## Knowledge
+- Knowledge rules live in `AGENTS.md`. Commit format for knowledge is owned by end-session.
 
 ## When unsure
 - Stop and ask the CEO or the PM before proceeding
-- Document the uncertainty in the session note under "open threads"
+- Document the uncertainty in an inbox note (log-mode-a) so the next end-session picks it up

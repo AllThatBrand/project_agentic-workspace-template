@@ -1406,7 +1406,7 @@ def gh_login(cfg: dict) -> str:
     login = r.stdout.strip()
     if login not in [str(x) for x in cfg_list(cfg, "reviewers")]:
         raise Fail(f"login '{login}' is not in okf.config reviewers")
-    url = git("remote", "get-url", "origin").strip()
+    url = git("remote", "get-url", "origin").strip().replace("\\", "/")
     m = re.search(r"[:/]([^/:]+)/([^/]+?)(?:\.git)?$", url)
     if not m:
         raise Fail(f"cannot read owner/repo from origin '{url}'")

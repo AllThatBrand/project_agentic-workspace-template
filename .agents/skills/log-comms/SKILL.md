@@ -20,8 +20,9 @@ Write the full form when you run it.
 3. Dedupe: look up the source reference (thread id, or the paste reference after step 1) in
    `.okf/comms/*` `atb.covers.source`, in `Knowledge-Source` trailers
    (`git log --format=%(trailers:key=Knowledge-Source,valueonly)`) and in `okf-check run list --open`.
-   A match → tell the user "already logged in <where>" and stop, or log only messages newer than
-   the latest `last_at`.
+   A match → fetch the thread's message list with timestamps and compare the newest one with the
+   latest `covers.last_at` (not only the message count: a thread can lose and gain messages). Nothing
+   newer → tell the user "already logged in <where>" and stop. Newer messages → log only those.
 
 ## 1. Fetch and screen
 

@@ -1761,12 +1761,13 @@ def cmd_screen(args: list[str]) -> int:
             writers: set[str] = set()
             for p in message_texts(scratch) if scratch.exists() else []:
                 if p.suffix != ".json":
-                    for m in re.finditer(r"(?mi)^From:\s*(.*)$", read_text(p)):
+                    for m in re.finditer(r"(?mi)^(?:From|To):\s*(.*)$", read_text(p)):
                         val = m.group(1)
                         writers |= {a.lower() for a in PATTERNS[0][1].findall(val)}
-                        nm = re.sub(r"<[^>]*>|\"", "", val).strip()
-                        if nm:
-                            writers.add(nm.lower())
+                        for part in val.split(","):
+                            nm = re.sub(r"<[^>]*>|\"", "", part).strip()
+                            if nm:
+                                writers.add(nm.lower())
             r["denylist"] = sorted({d for d in deny if d.lower() not in writers})
             save_run(r)
         print(f"screen --pre: {len(r['denylist'])} denylist entries; quoted text stripped")

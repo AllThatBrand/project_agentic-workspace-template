@@ -339,10 +339,11 @@ class CliTests(Base):
         scratch = Path(out.split("scratch: ")[1].split()[0])
         (scratch / "messages").mkdir()
         (scratch / "messages" / "01.txt").write_text("From: Ann Writer <ann@a.example.org>\nCc: Ann Writer <ann@a.example.org>, Cee Only <cee@b.example.org>\nDate: x\n\nHello\n")
-        (scratch / "messages" / "02.txt").write_text("From: Bob Other <bob@a.example.org>\nCc: Ann Writer <ann@a.example.org>\nDate: y\n\nReply\n")
+        (scratch / "messages" / "02.txt").write_text("From: Bob Other <bob@a.example.org>\nTo: Tea Reader <tea@a.example.org>\nCc: Ann Writer <ann@a.example.org>\nDate: y\n\nReply\n\nThanks\nTea Reader\n")
         self.okf("screen", "--pre", "--run", "2026-11-10-thread")
         deny = json.loads(okf.run_path("2026-11-10-thread").read_text())["denylist"]
         self.assertIn("Cee Only", deny)
+        self.assertNotIn("Tea Reader", deny)
         self.assertNotIn("Ann Writer", deny)
         self.assertFalse(any(d.startswith("ann@") for d in deny))
         self.okf("run", "abandon", "2026-11-10-thread")

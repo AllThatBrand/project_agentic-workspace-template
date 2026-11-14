@@ -746,6 +746,9 @@ PLACEHOLDER = re.compile(r"<(?!https?:|mailto:|!--|/)[^<>\n]{1,60}>")
 QUOTE_SPAN = re.compile(r"[\"“]([^\"”\n]+)[\"”]")
 
 
+STAMPED_IN_OPEN_RUNS: set[str] = set()
+
+
 def check_concept(path: str, doc: Doc, cfg: dict, base: str | None, f: Findings, run: dict | None):
     br = bundle_rel(path)
     if doc.error:
@@ -788,7 +791,7 @@ def check_concept(path: str, doc: Doc, cfg: dict, base: str | None, f: Findings,
     new_status = m.get("status")
     ok = {(None, "draft"), ("draft", "draft"), ("draft", "stable"), ("stable", "stable"),
           ("stable", "deprecated"), ("deprecated", "deprecated")}
-    if (old_status, new_status) not in ok:
+    if (old_status, new_status) not in ok and path not in STAMPED_IN_OPEN_RUNS:
         if not ((old_status == "draft" and new_status == "deprecated") and doc.atb.get("superseded_by")):
             f.add("advisory", "C6", path, f"status {old_status or '(new)'} → {new_status} is not allowed (spec 3.4)")
     if old_status == "deprecated" and old and old.text != doc.text:
@@ -933,6 +936,10 @@ def cmd_check(args: list[str]) -> int:
     if args[:1] == ["--run"]:
         run = load_run(args[1]); args = args[2:]
     base = base_ref(cfg)
+    # a file stamped by a run that has not reached commit B yet is not a skipped review (C6)
+    STAMPED_IN_OPEN_RUNS.clear()
+    for o in open_runs():
+        STAMPED_IN_OPEN_RUNS.update(o.get("stamped", []))
     if run:
         paths = [p for p in run["paths"] if (ROOT / p).exists()]
     elif args:
@@ -1081,8 +1088,10 @@ def append_carried(events: list[dict], run_slug: str) -> list[dict]:
         p.write_text(CARRIED_HEADER, encoding="utf-8", newline="\n")
     text = read_text(p)
     rows = carried_rows(text)
-    if any(len(r) > 4 and r[4] == run_slug for r in rows):
-        return [e for e in events]  # already appended (idempotent, spec 4.4 step 7)
+    mine = [r for r in rows if len(r) > 4 and r[4] == run_slug]
+    if mine:
+        # already appended (idempotent, spec 4.4 step 7): return the events with their written IDs
+        return [{**e, "id": row[0]} for e, row in zip(events, mine)] + events[len(mine):]
     n = next_id(rows)
     lines, out = [], []
     today = dt.date.today().isoformat()

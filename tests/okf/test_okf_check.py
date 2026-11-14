@@ -427,6 +427,7 @@ class RunTests(Base):
         self.assertEqual(dec.count("human:tester"), 1)
         self.assertIn("status: stable", (self.repo.root / ".okf/rules/commits.md").read_text())
         self.assertEqual(json.loads(okf.run_path(s).read_text())["state"], "stamped")
+        self.assertNotIn("C6", self.rules(self.okf()[1]))
 
     def test_stamp_gh_failure_then_resume(self):
         self.bundle(); self.repo.commit("init")
@@ -517,7 +518,7 @@ class CarriedTests(Base):
         rows = okf.carried_rows((self.repo.root / "inbox/carried.md").read_text())
         self.assertEqual(len(rows), 4)
         self.assertEqual([i["id"] for i in okf.fold_carried(rows)], ["C-0002", "C-0003"])
-        self.assertTrue(again)
+        self.assertEqual([e["id"] for e in again], ["C-0001"])
 
     def test_seed_shapes(self):
         self.bundle(); self.repo.commit("init")

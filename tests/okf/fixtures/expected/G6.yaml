@@ -9,7 +9,6 @@ refusals:
   - commercial
   - contact-detail
   - credential
-  - personal
   - third-party
 flag_kinds: []
 carried:

@@ -94,6 +94,9 @@ Refused: commercial ×1 → <destination>
 Accept all unflagged [a], list numbers to drop, or open flags [f]:
 ```
 
+- Collected log-comms runs are shown as a separate group under their own heading
+  (`From log-comms <slug>: <source>`) with their own accept-all/drop answer; record the answers as
+  path lists in the same `run review` call.
 - "Accept all" covers files without flags; each flagged file needs keep, edit or drop.
 - Record it: `okf-check run review <slug> --accept <paths…> --drop <paths…> --keep-flag <n…>`.
   Dropping restores or deletes the file. After any drop, run step 4 again on what remains.

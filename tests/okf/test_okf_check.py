@@ -339,10 +339,11 @@ class CliTests(Base):
         scratch = Path(out.split("scratch: ")[1].split()[0])
         (scratch / "messages").mkdir()
         (scratch / "messages" / "01.txt").write_text("From: Ann Writer <ann@a.example.org>\nCc: Ann Writer <ann@a.example.org>, Cee Only <cee@b.example.org>\nDate: x\n\nHello\n")
-        (scratch / "messages" / "02.txt").write_text("From: Bob Other <bob@a.example.org>\nCc: Ann Writer <ann@a.example.org>\nDate: y\n\nReply\n")
+        (scratch / "messages" / "02.txt").write_text("From: Bob Other <bob@a.example.org>\nTo: Tea Reader <tea@a.example.org>\nCc: Ann Writer <ann@a.example.org>\nDate: y\n\nReply\n\nThanks\nTea Reader\n")
         self.okf("screen", "--pre", "--run", "2026-11-10-thread")
         deny = json.loads(okf.run_path("2026-11-10-thread").read_text())["denylist"]
         self.assertIn("Cee Only", deny)
+        self.assertNotIn("Tea Reader", deny)
         self.assertNotIn("Ann Writer", deny)
         self.assertFalse(any(d.startswith("ann@") for d in deny))
         self.okf("run", "abandon", "2026-11-10-thread")
@@ -409,11 +410,24 @@ class RunTests(Base):
     def test_stamp_refuses_changed_blob(self):
         self.bundle(); self.repo.commit("init")
         s = self.start()
-        self.review_ready(s, [".okf/rules/commits.md"])
+        self.review_ready(s, [".okf/rules/commits.md", ".okf/decisions/2026-01-02-use-okf.md"])
         self.repo.write(".okf/rules/commits.md", GOOD[".okf/rules/commits.md"] + "late edit\n")
         code, out = self.okf("stamp", "--run", s)
         self.assertEqual(code, 2)
-        self.assertEqual(json.loads(okf.run_path(s).read_text())["state"], "checked")
+        r = json.loads(okf.run_path(s).read_text())
+        self.assertEqual(r["state"], "checked")
+        self.assertEqual(r["stamped"], [".okf/decisions/2026-01-02-use-okf.md"])
+        self.assertIn("status: draft", (self.repo.root / ".okf/rules/commits.md").read_text())
+        dec = (self.repo.root / ".okf/decisions/2026-01-02-use-okf.md").read_text()
+        self.assertIn("status: stable", dec)
+        # re-review the edited file; the second stamp must not stamp the Decision again
+        self.okf("run", "review", s)
+        self.assertEqual(self.okf("stamp", "--run", s)[0], 0)
+        dec = (self.repo.root / ".okf/decisions/2026-01-02-use-okf.md").read_text()
+        self.assertEqual(dec.count("human:tester"), 1)
+        self.assertIn("status: stable", (self.repo.root / ".okf/rules/commits.md").read_text())
+        self.assertEqual(json.loads(okf.run_path(s).read_text())["state"], "stamped")
+        self.assertNotIn("C6", self.rules(self.okf()[1]))
 
     def test_stamp_gh_failure_then_resume(self):
         self.bundle(); self.repo.commit("init")
@@ -468,6 +482,32 @@ class RunTests(Base):
         self.assertNotIn("C6", out, out)
 
 
+class CollectTests(Base):
+    start = RunTests.start
+
+    def test_collected_pointer_note_deleted_by_commit_b(self):
+        self.bundle(); self.repo.commit("init")
+        a = self.start("2026-01-02-open")
+        b = self.start("2026-01-02-mail", mode="log-comms")
+        for slug in (a, b):
+            for st in ("screened", "inbox-committed"):
+                self.okf("run", "set", slug, "--state", st)
+            self.repo.write(f"inbox/{slug}.md", "pointer\n")
+            self.repo.commit(f"inbox: {slug}", f"inbox/{slug}.md")
+        self.repo.write(".okf/comms/2026-01-02-mail.md", "x\n")
+        self.okf("run", "add-path", b, ".okf/comms/2026-01-02-mail.md")
+        self.okf("run", "set", b, "--state", "drafted"); self.okf("run", "set", b, "--state", "waiting")
+        self.okf("run", "set", a, "--state", "drafted")
+        self.assertEqual(self.okf("run", "collect", a, b)[0], 0)
+        self.okf("run", "set", a, "--state", "checked"); self.okf("run", "review", a)
+        self.assertEqual(self.okf("stamp", "--run", a)[0], 0)
+        self.okf("carried", "--run", a); self.okf("index", "--run", a)
+        self.assertEqual(self.okf("run", "commit", a)[0], 0)
+        self.assertFalse((self.repo.root / f"inbox/{b}.md").exists())
+        self.assertEqual(json.loads(okf.run_path(b).read_text())["state"], "done")
+        self.assertIn("Knowledge-Mode: end-session log-comms", run_git(self.repo.root, "log", "-1", "--format=%B"))
+
+
 class CarriedTests(Base):
     def test_ids_unique_and_idempotent(self):
         self.bundle(); self.repo.commit("init")
@@ -480,7 +520,7 @@ class CarriedTests(Base):
         rows = okf.carried_rows((self.repo.root / "inbox/carried.md").read_text())
         self.assertEqual(len(rows), 4)
         self.assertEqual([i["id"] for i in okf.fold_carried(rows)], ["C-0002", "C-0003"])
-        self.assertTrue(again)
+        self.assertEqual([e["id"] for e in again], ["C-0001"])
 
     def test_seed_shapes(self):
         self.bundle(); self.repo.commit("init")

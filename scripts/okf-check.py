@@ -746,6 +746,9 @@ PLACEHOLDER = re.compile(r"<(?!https?:|mailto:|!--|/)[^<>\n]{1,60}>")
 QUOTE_SPAN = re.compile(r"[\"“]([^\"”\n]+)[\"”]")
 
 
+STAMPED_IN_OPEN_RUNS: set[str] = set()
+
+
 def check_concept(path: str, doc: Doc, cfg: dict, base: str | None, f: Findings, run: dict | None):
     br = bundle_rel(path)
     if doc.error:
@@ -788,7 +791,7 @@ def check_concept(path: str, doc: Doc, cfg: dict, base: str | None, f: Findings,
     new_status = m.get("status")
     ok = {(None, "draft"), ("draft", "draft"), ("draft", "stable"), ("stable", "stable"),
           ("stable", "deprecated"), ("deprecated", "deprecated")}
-    if (old_status, new_status) not in ok:
+    if (old_status, new_status) not in ok and path not in STAMPED_IN_OPEN_RUNS:
         if not ((old_status == "draft" and new_status == "deprecated") and doc.atb.get("superseded_by")):
             f.add("advisory", "C6", path, f"status {old_status or '(new)'} → {new_status} is not allowed (spec 3.4)")
     if old_status == "deprecated" and old and old.text != doc.text:
@@ -933,6 +936,10 @@ def cmd_check(args: list[str]) -> int:
     if args[:1] == ["--run"]:
         run = load_run(args[1]); args = args[2:]
     base = base_ref(cfg)
+    # a file stamped by a run that has not reached commit B yet is not a skipped review (C6)
+    STAMPED_IN_OPEN_RUNS.clear()
+    for o in open_runs():
+        STAMPED_IN_OPEN_RUNS.update(o.get("stamped", []))
     if run:
         paths = [p for p in run["paths"] if (ROOT / p).exists()]
     elif args:
@@ -1081,8 +1088,10 @@ def append_carried(events: list[dict], run_slug: str) -> list[dict]:
         p.write_text(CARRIED_HEADER, encoding="utf-8", newline="\n")
     text = read_text(p)
     rows = carried_rows(text)
-    if any(len(r) > 4 and r[4] == run_slug for r in rows):
-        return [e for e in events]  # already appended (idempotent, spec 4.4 step 7)
+    mine = [r for r in rows if len(r) > 4 and r[4] == run_slug]
+    if mine:
+        # already appended (idempotent, spec 4.4 step 7): return the events with their written IDs
+        return [{**e, "id": row[0]} for e, row in zip(events, mine)] + events[len(mine):]
     n = next_id(rows)
     lines, out = [], []
     today = dt.date.today().isoformat()
@@ -1418,6 +1427,8 @@ def gh_login(cfg: dict) -> str:
 
 
 def cmd_stamp(args: list[str]) -> int:
+    """Step 6 (spec 4.6). Files changed since review go back to review and are not stamped; the
+    unchanged ones are stamped now. Files stamped earlier in this run are never stamped twice."""
     cfg = load_config()
     slug = opt(args, "--run")
     if not slug:
@@ -1428,26 +1439,25 @@ def cmd_stamp(args: list[str]) -> int:
             r["state"], r["failed"] = "reviewed", None
         if r["state"] != "reviewed":
             raise Refuse(f"run {slug} is {r['state']}; stamp needs state reviewed")
-        changed = [a["path"] for a in r["review"]["accepted"] if blob_of(a["path"]) != a["blob"]]
-        if changed:
-            transition(r, "checked")
-            save_run(r)
-            raise Refuse("changed after review, back to review: " + ", ".join(changed))
         try:
             login = gh_login(cfg)
         except Fail as e:
             fail_run(r, 6, str(e), "reviewed")
+        done = set(r.get("stamped", []))
+        changed = [a["path"] for a in r["review"]["accepted"]
+                   if a["path"] not in done and blob_of(a["path"]) != a["blob"]]
         now = now_iso()
-        accepted = [a["path"] for a in r["review"]["accepted"]]
+        accepted = [a["path"] for a in r["review"]["accepted"] if a["path"] not in changed]
         superseded = {}
         for p in accepted:
             d = Doc.load(p)
             sup = d.atb.get("supersedes")
             if sup:
                 target = rel((ROOT / p).parent / sup)
-                if target in r["paths"]:
+                if target in r["paths"] and target not in changed:
                     superseded[target] = Path(p).name
-        for p in accepted + [t for t in superseded if t not in accepted]:
+        todo = [p for p in accepted + [t for t in superseded if t not in accepted] if p not in done]
+        for p in todo:
             d = Doc.load(p)
             if d.error:
                 continue
@@ -1467,10 +1477,17 @@ def cmd_stamp(args: list[str]) -> int:
                 if a["path"] == p:
                     a["blob"] = blob_of(p)
             r["paths"][p]["blob"] = blob_of(p)
+            done.add(p)
+        r["stamped"] = sorted(done)
         r["reviewer"] = login
+        if changed:
+            r["review"]["accepted"] = [a for a in r["review"]["accepted"] if a["path"] not in changed]
+            transition(r, "checked")
+            save_run(r)
+            raise Refuse(f"stamped {len(todo)}; changed after review, back to review: " + ", ".join(changed))
         transition(r, "stamped")
         save_run(r)
-    print(f"stamped {len(accepted)} files as human:{login}")
+    print(f"stamped {len(todo)} files as human:{login}")
     return 0
 
 
@@ -1609,14 +1626,19 @@ def run_commit(slug: str) -> int:
                 paths |= {"inbox/carried.md", ".okf/.screen-allow"}
                 if r["mode"] != "migration-review":
                     paths.add(f"inbox/{slug}.md")
-                quick = [p for p in r.get("quick_notes", [])]
-                paths |= set(quick)
+                # pointer notes of collected log-comms runs are deleted in the same commit B
+                notes = [f"inbox/{c['slug']}.md" for c in r.get("collected", [])]
+                if r["mode"] != "migration-review":
+                    notes.append(f"inbox/{slug}.md")
+                paths |= set(notes)
                 present = sorted(p for p in paths if (ROOT / p).exists())
                 gone = sorted(p for p in paths if not (ROOT / p).exists() and head_has(p))
-                if r["mode"] != "migration-review" and (ROOT / "inbox" / f"{slug}.md").exists():
-                    (ROOT / "inbox" / f"{slug}.md").unlink()
-                    present.remove(f"inbox/{slug}.md")
-                    gone.append(f"inbox/{slug}.md")
+                for note in notes:
+                    if (ROOT / note).exists():
+                        (ROOT / note).unlink()
+                        present.remove(note)
+                        if head_has(note):
+                            gone.append(note)
                 if present:
                     git("add", "--", *present)
                 if gone:
@@ -1761,12 +1783,13 @@ def cmd_screen(args: list[str]) -> int:
             writers: set[str] = set()
             for p in message_texts(scratch) if scratch.exists() else []:
                 if p.suffix != ".json":
-                    for m in re.finditer(r"(?mi)^From:\s*(.*)$", read_text(p)):
+                    for m in re.finditer(r"(?mi)^(?:From|To):\s*(.*)$", read_text(p)):
                         val = m.group(1)
                         writers |= {a.lower() for a in PATTERNS[0][1].findall(val)}
-                        nm = re.sub(r"<[^>]*>|\"", "", val).strip()
-                        if nm:
-                            writers.add(nm.lower())
+                        for part in val.split(","):
+                            nm = re.sub(r"<[^>]*>|\"", "", part).strip()
+                            if nm:
+                                writers.add(nm.lower())
             r["denylist"] = sorted({d for d in deny if d.lower() not in writers})
             save_run(r)
         print(f"screen --pre: {len(r['denylist'])} denylist entries; quoted text stripped")

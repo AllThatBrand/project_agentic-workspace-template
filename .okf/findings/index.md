@@ -1,0 +1,3 @@
+# Findings
+
+No concepts yet.

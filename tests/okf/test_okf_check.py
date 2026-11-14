@@ -482,7 +482,9 @@ class RunTests(Base):
         self.assertNotIn("C6", out, out)
 
 
-class CollectTests(RunTests):
+class CollectTests(Base):
+    start = RunTests.start
+
     def test_collected_pointer_note_deleted_by_commit_b(self):
         self.bundle(); self.repo.commit("init")
         a = self.start("2026-01-02-open")

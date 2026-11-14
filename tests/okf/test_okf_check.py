@@ -230,6 +230,19 @@ class ParserTests(unittest.TestCase):
         self.assertNotEqual(h, okf.concept_hash(base.replace("Body", "Changed")))
 
 
+class StripQuotedTests(unittest.TestCase):
+    def test_keeps_own_header_block(self):
+        text = "From: A <a@example.org>\nTo: B\nCc: C\nDate: 2026-01-01\n\nHello.\nOn Mon, X wrote:\n> old"
+        out = okf.strip_quoted(text)
+        self.assertIn("Hello.", out)
+        self.assertIn("Date: 2026-01-01", out)
+        self.assertNotIn("old", out)
+
+    def test_cuts_forwarded_header_in_body(self):
+        out = okf.strip_quoted("Hi\n\nFrom: X\nSent: today\nold text")
+        self.assertEqual(out.strip(), "Hi")
+
+
 class NameHeuristicTests(unittest.TestCase):
     def names(self, line, known=(), orgs=()):
         return list(okf.name_candidates(line, set(known), set(orgs)))

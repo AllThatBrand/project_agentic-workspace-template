@@ -1685,8 +1685,15 @@ def name_candidates(line: str, known: set[str], orgs: set[str]):
 
 
 def strip_quoted(text: str) -> str:
+    """Strip quoted and forwarded text. A leading header block (lines up to the first blank line
+    that all look like `Name: value`) is the message's own header and is kept."""
     lines = text.split("\n")
     out = []
+    head = 0
+    while head < len(lines) and re.match(r"^[A-Za-z-]+: ", lines[head]):
+        head += 1
+    if head and head < len(lines) and not lines[head].strip():
+        out, lines = lines[:head], lines[head:]
     for i, l in enumerate(lines):
         if l.startswith(">"):
             continue

@@ -1938,7 +1938,8 @@ def cmd_debt() -> int:
     print(f"8. open runs: {len(runs)}" + "".join(lines))
     unpushed = git("log", f"origin/{branch}..{branch}", "--format=%h %s", "--grep=^knowledge:", check=False).strip()
     print(f"9. commit B not pushed: {len(unpushed.splitlines()) if unpushed else 0}")
-    print(f"10. setup_version: {cfg.get('setup_version') or 'n/a (setup-project not built)'}")
+    sv = cfg.get("setup_version")
+    print(f"10. setup_version: {sv if sv not in (None, '', 'null') else 'n/a (setup-project not built)'}")
     return 0
 
 
@@ -1990,6 +1991,23 @@ def cmd_spot_check(args: list[str]) -> int:
 
 # ----------------------------------------------------------------------------- migrate
 
+def inventory_rows() -> list[dict]:
+    p = ROOT / "docs" / "okf-migration-inventory.md"
+    rows: list[dict] = []
+    if not p.exists():
+        return rows
+    header = None
+    for l in read_text(p).split("\n"):
+        if not l.startswith("|") or re.match(r"^\|[\s:-]+\|", l):
+            continue
+        cells = [c.strip().strip("`") for c in l.strip().strip("|").split("|")]
+        if header is None:
+            header = [c.lower() for c in cells]
+            continue
+        rows.append(dict(zip(header, cells)))
+    return rows
+
+
 def inventory_map() -> dict[str, str]:
     p = ROOT / "docs" / "okf-migration-inventory.md"
     out = {}
@@ -2016,6 +2034,7 @@ def relpath(target: str, start_file: str) -> str:
 def cmd_migrate(args: list[str]) -> int:
     load_config()
     inv = inventory_map()
+    refused = {r["old path"] for r in inventory_rows() if r.get("outcome", "").startswith("refused")}
     back = {v: k for k, v in inv.items()}
     unresolved = 0
     for a in args:
@@ -2063,6 +2082,12 @@ def cmd_migrate(args: list[str]) -> int:
             hits = [n for o, n in inv.items() if Path(o).stem == name]
             if hits:
                 return f"[{name}]({relpath(hits[0], path)})"
+            if any(Path(o).stem == name for o in refused):
+                return f"{name} (restricted record, not in git)"
+            # a file that stays in place (frozen or kept): link to where it still is
+            here = [str(q.relative_to(ROOT)) for q in ROOT.joinpath(os.path.dirname(back.get(path, path)) or ".").rglob(f"{Path(name).name}.md")]
+            if here:
+                return f"[{name}]({relpath(here[0], path)})"
             print(f"unresolved wikilink [[{name}]] in {path}")
             unresolved += 1
             return m.group(0)
@@ -2073,6 +2098,8 @@ def cmd_migrate(args: list[str]) -> int:
             if re.match(r"^[a-z]+:", target) or target.startswith("#"):
                 return m.group(0)
             tgt, frag = (target.split("#", 1) + [""])[:2]
+            if (ROOT / path).parent.joinpath(tgt).exists():
+                return m.group(0)  # already resolves from the new location
             abs_old = os.path.normpath(os.path.join(os.path.dirname(old_path), tgt)).replace(os.sep, "/")
             new_tgt = inv.get(abs_old, abs_old)
             if not (ROOT / new_tgt).exists():

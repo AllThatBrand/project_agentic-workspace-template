@@ -568,9 +568,25 @@ class LogAndMigrateTests(Base):
         self.assertIn("stale_after", d.meta)
         self.assertEqual(d.meta["generated"]["by"], okf.MIGRATION_ACTOR)
         self.assertIn("[feedback_x](../rules/deploy.md)", d.body)
+        # running migrate again keeps links that already resolve
+        self.assertEqual(self.okf("migrate", ".okf/systems/site-ref.md")[0], 0)
+        self.assertIn("[feedback_x](../rules/deploy.md)", okf.Doc.load(".okf/systems/site-ref.md").body)
         r = okf.Doc.load(".okf/rules/deploy.md")
         self.assertNotIn("stale_after", r.meta)
         self.assertNotIn("metadata", r.meta)
+
+    def test_migrate_frozen_and_refused_wikilinks(self):
+        self.bundle()
+        self.repo.write("docs/okf-migration-inventory.md",
+                        "| old path | outcome | new path |\n|---|---|---|\n"
+                        "| memory/reference_a.md | migrated | .okf/systems/a.md |\n"
+                        "| memory/project_secret.md | refused: security-incident | |\n")
+        self.repo.write("memory/project_state.md", "frozen\n")
+        self.repo.write(".okf/systems/a.md", "---\nname: A\ntype: reference\n---\nSee [[project_state]] and [[project_secret]].\n")
+        self.assertEqual(self.okf("migrate", ".okf/systems/a.md")[0], 0)
+        body = okf.Doc.load(".okf/systems/a.md").body
+        self.assertIn("[project_state](../../memory/project_state.md)", body)
+        self.assertIn("project_secret (restricted record, not in git)", body)
 
     def test_log(self):
         self.bundle(); self.repo.commit("init")

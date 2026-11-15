@@ -1366,6 +1366,11 @@ def cmd_run(args: list[str]) -> int:
                 r["paths"].update(w["paths"])
                 r["refusals"] += w["refusals"]
                 r["flags"] += w["flags"]
+                # carried events and "neither" items travel with the paths: the collecting run
+                # carries and commits them, so they must not stay behind in the waiting run
+                r["carried_events"] = r.get("carried_events", []) + w.get("carried_events", [])
+                r["neither"] = r.get("neither", []) + w.get("neither", [])
+                w["carried_events"], w["neither"] = [], []
                 r["collected"].append({"slug": s2, "source": w.get("source"), "covers": w.get("covers"),
                                        "mode": w["mode"]})
                 w["paths"] = {}

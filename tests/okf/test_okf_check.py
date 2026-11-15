@@ -507,6 +507,32 @@ class CollectTests(Base):
         self.assertEqual(json.loads(okf.run_path(b).read_text())["state"], "done")
         self.assertIn("Knowledge-Mode: end-session log-comms", run_git(self.repo.root, "log", "-1", "--format=%B"))
 
+    def test_collect_carries_events_and_neither_of_waiting_run(self):
+        self.bundle(); self.repo.commit("init")
+        a = self.start("2026-01-02-open")
+        b = self.start("2026-01-02-mail", mode="log-comms")
+        for slug in (a, b):
+            for st in ("screened", "inbox-committed"):
+                self.okf("run", "set", slug, "--state", st)
+            self.repo.write(f"inbox/{slug}.md", "pointer\n")
+            self.repo.commit(f"inbox: {slug}", f"inbox/{slug}.md")
+        self.okf("run", "set", a, "--carried", '[{"event":"open","text":"from a"}]',
+                 "--neither", '[{"item":"na","reason":"r"}]')
+        self.okf("run", "set", b, "--carried", '[{"event":"open","text":"from b"}]',
+                 "--neither", '[{"item":"nb","reason":"r"}]')
+        self.okf("run", "set", b, "--state", "drafted"); self.okf("run", "set", b, "--state", "waiting")
+        self.okf("run", "set", a, "--state", "drafted")
+        self.assertEqual(self.okf("run", "collect", a, b)[0], 0)
+        self.okf("run", "set", a, "--state", "checked"); self.okf("run", "review", a)
+        self.okf("stamp", "--run", a); self.okf("carried", "--run", a); self.okf("index", "--run", a)
+        self.assertEqual(self.okf("run", "commit", a)[0], 0)
+        rows = okf.carried_rows((self.repo.root / "inbox/carried.md").read_text())
+        self.assertEqual(sorted(r[3] for r in rows), ["from a", "from b"])
+        body = run_git(self.repo.root, "log", "-1", "--format=%B")
+        self.assertIn("Knowledge-Carried: 2/0", body)
+        self.assertIn("Knowledge-Neither: 2", body)
+        self.assertEqual(json.loads(okf.run_path(b).read_text())["carried_events"], [])
+
 
 class CarriedTests(Base):
     def test_ids_unique_and_idempotent(self):

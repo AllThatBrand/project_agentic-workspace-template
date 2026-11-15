@@ -36,6 +36,11 @@ handling, debt report display).
 - `docs/decisions/2026-03-22-…` moved into `.okf/decisions/`, superseded by `2026-11-13-okf-adopted`
 - `README.md` — new structure, entry points, debt report, how to copy the tooling
 
+### Fixed
+- `okf-check run collect` now moves the waiting run's carried events and "neither" items into the
+  collecting run. Before, they were silently dropped (found in kcm, 2026-11-15). Not yet tagged;
+  pilots stay on `okf-tooling 0.1.1` until the next tooling tag.
+
 ## [1.1.0] — 2026-03-26
 
 ### Added

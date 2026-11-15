@@ -1938,7 +1938,8 @@ def cmd_debt() -> int:
     print(f"8. open runs: {len(runs)}" + "".join(lines))
     unpushed = git("log", f"origin/{branch}..{branch}", "--format=%h %s", "--grep=^knowledge:", check=False).strip()
     print(f"9. commit B not pushed: {len(unpushed.splitlines()) if unpushed else 0}")
-    print(f"10. setup_version: {cfg.get('setup_version') or 'n/a (setup-project not built)'}")
+    sv = cfg.get("setup_version")
+    print(f"10. setup_version: {sv if sv not in (None, '', 'null') else 'n/a (setup-project not built)'}")
     return 0
 
 

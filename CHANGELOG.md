@@ -8,7 +8,9 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] — 2.0.0
 
-Released after the OKF pilots (kcm, terabeauty). Tooling version `okf-tooling 0.1.0`.
+Released after the OKF pilots (kcm, terabeauty). Tooling versions: `okf-tooling 0.1.0` (phase-0
+gate, tag `okf-tooling-v0.1.0`), `okf-tooling 0.1.1` (fixes from the pilot cut-overs: migrate link
+handling, debt report display).
 
 ### Added
 - `.okf/` OKF v0.2 knowledge bundle: `client.md`, typed folders, generated indexes

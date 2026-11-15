@@ -1,4 +1,4 @@
-# okf-tooling: 0.1.0
+# okf-tooling: 0.1.1
 # OKF knowledge checks (design "OKF knowledge pipeline", item 9).
 # Optional steps are gated by a probe step, never by a job-level hashFiles() (not allowed there).
 name: okf

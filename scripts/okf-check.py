@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# okf-tooling: 0.1.0
+# okf-tooling: 0.1.1
 """okf-check: rules, screening, run state and stamping for an ATB OKF v0.2 bundle.
 
 Standard library only, Python 3.11+. Spec: okf-workspace/spec.md (atb-admin), sections 3-9.
@@ -42,7 +42,7 @@ import time
 import unicodedata
 from pathlib import Path
 
-TOOLING_VERSION = "0.1.0"
+TOOLING_VERSION = "0.1.1"
 MIGRATION_ACTOR = f"process:atb-okf-migration/{TOOLING_VERSION}"
 TYPES = ("Decision", "Rule", "Finding", "Person", "Client", "System", "Runbook", "Comms")
 OLD_TYPES = ("user", "feedback", "project", "reference", "memory", "note")

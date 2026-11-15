@@ -2,7 +2,7 @@
 
 Agent-optimised project repository for the {{CLIENT_NAME}} client project at {{AGENCY_NAME}}.
 Project knowledge lives in an [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format)
-v0.2 bundle (`.okf/`), maintained by three agent skills. Tooling version: `okf-tooling 0.1.0`.
+v0.2 bundle (`.okf/`), maintained by three agent skills. Tooling version: `okf-tooling 0.1.1`.
 
 ---
 

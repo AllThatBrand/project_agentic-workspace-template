@@ -5,7 +5,7 @@ description: >
   one-line screened inbox note that the next end-session turns into knowledge or a carried item.
   Use when the user says "log this", "log quick task", "log mode a", or "this was a quick fix, log
   it".
-okf_tooling: 0.1.0
+okf_tooling: 0.1.1
 ---
 
 # log-mode-a

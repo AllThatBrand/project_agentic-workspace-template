@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# okf-tooling: 0.1.0
+# okf-tooling: 0.1.1
 """Compare a golden-test run file with its expected output (design item 33, spec 10.1).
 
 Usage: python tests/okf/golden.py <Gn> <run-file>

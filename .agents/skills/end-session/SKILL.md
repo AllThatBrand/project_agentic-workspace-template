@@ -6,7 +6,7 @@ description: >
   commit B and push. Also runs "catch up" (knowledge from recent commits) and "review migration
   <folder>" (confirm migrated drafts). Use when the user says "end session", "wrap up", "we're done
   for today", "catch up", or "review migration <folder>". Never runs on its own.
-okf_tooling: 0.1.0
+okf_tooling: 0.1.1
 ---
 
 # end-session

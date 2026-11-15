@@ -1,4 +1,4 @@
-# okf-tooling: 0.1.0
+# okf-tooling: 0.1.1
 """Unit tests for scripts/okf-check.py (plan item 31).
 
 Each test that touches git builds a temporary repo whose `origin` is a local bare repo at

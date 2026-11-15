@@ -5,7 +5,7 @@ description: >
   report and any open pipeline runs, and offer to resume an unfinished close or catch up. Use when
   the user says "start session", "good morning", "what's the state", or opens a session and asks
   where things stand. Never pulls, commits or writes files.
-okf_tooling: 0.1.0
+okf_tooling: 0.1.1
 ---
 
 # start-session

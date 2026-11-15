@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # VENDORED: scaccogatto/okf-skills@c6591ece20f35299b0d483168b376d550787c735
-# okf-tooling: 0.1.0
+# okf-tooling: 0.1.1
 # /// script
 # requires-python = ">=3.11"
 # dependencies = ["pyyaml>=6,<7"]

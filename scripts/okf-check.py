@@ -1452,7 +1452,9 @@ def cmd_stamp(args: list[str]) -> int:
         changed = [a["path"] for a in r["review"]["accepted"]
                    if a["path"] not in done and blob_of(a["path"]) != a["blob"]]
         now = now_iso()
-        accepted = [a["path"] for a in r["review"]["accepted"] if a["path"] not in changed]
+        # a deleted file or a file outside the bundle is committed by commit B but never stamped
+        accepted = [a["path"] for a in r["review"]["accepted"] if a["path"] not in changed
+                    and a["path"].startswith(".okf/") and (ROOT / a["path"]).exists()]
         superseded = {}
         for p in accepted:
             d = Doc.load(p)

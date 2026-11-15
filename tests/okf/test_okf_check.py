@@ -429,6 +429,20 @@ class RunTests(Base):
         self.assertEqual(json.loads(okf.run_path(s).read_text())["state"], "stamped")
         self.assertNotIn("C6", self.rules(self.okf()[1]))
 
+    def test_stamp_skips_deleted_and_non_bundle_paths(self):
+        self.bundle(); self.repo.write("docs/inventory.md", "| a |\n"); self.repo.commit("init")
+        s = self.start()
+        run_git(self.repo.root, "rm", "-q", ".okf/systems/site.md")
+        self.repo.write("docs/inventory.md", "| a | b |\n")
+        self.review_ready(s, [".okf/rules/commits.md", ".okf/systems/site.md", "docs/inventory.md"])
+        code, out = self.okf("stamp", "--run", s)
+        self.assertEqual(code, 0, out)
+        self.assertIn("status: stable", (self.repo.root / ".okf/rules/commits.md").read_text())
+        self.okf("carried", "--run", s); self.okf("index", "--run", s)
+        self.repo.write(f"inbox/{s}.md", "note\n"); self.repo.commit("inbox", f"inbox/{s}.md")
+        self.assertEqual(self.okf("run", "commit", s)[0], 0)
+        self.assertNotIn(".okf/systems/site.md", run_git(self.repo.root, "ls-files"))
+
     def test_stamp_gh_failure_then_resume(self):
         self.bundle(); self.repo.commit("init")
         s = self.start()

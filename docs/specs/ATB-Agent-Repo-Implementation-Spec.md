@@ -92,7 +92,7 @@ Three capture levels map to three folders in the repo:
 
 ## 3. Folder Structure
 
-Each project has its own GIT repo with this structure. The website repo is added as a git submodule.
+Each project has its own GIT repo with this structure. The website code lives in its own repo, cloned next to this one; it is not a submodule (ADR `docs/decisions/2026-11-23-website-repo-separate-not-submodule.md`).
 
 ```
 project-root/
@@ -133,7 +133,6 @@ project-root/
 │       └── digest-router.yml  Route digest files + trigger context update
 │
 ├── .cursorrules               Tells Cursor: read CONTEXT.md before any task
-├── website/                   Git submodule → website repo
 └── README.md                  How this repo works · team onboarding
 ```
 
@@ -773,7 +772,7 @@ SKIP: greetings, reactions, 'OK'/'Thanks' with no substance, duplicates.
 ### Phase 1 — Repo Setup (CEO or PM, once)
 
 1. Create project GIT repo on GitHub
-2. Add website repo as git submodule: `git submodule add [url] website/`
+2. Create the website repo from `AllThatBrand/atb-starter-theme` (ATB-142 pipeline included), write its URL and checkout path in `.agent/project.md`, and clone it next to the project repo. Do not add it as a submodule.
 3. Create folder structure: `.agent/` `docs/` `tasks/` `memory/` `digest/` `scripts/` `.github/workflows/`
 4. Copy all scripts from this spec into `scripts/` and `.github/workflows/`
 5. Set GitHub repo variables: `PROJECT_NAME`, `JIRA_PROJECT_KEY`

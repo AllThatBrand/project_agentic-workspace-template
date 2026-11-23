@@ -54,7 +54,17 @@ scripts/
   context-update.yml   Regenerates CONTEXT.md on every merge
   digest-router.yml    Routes digest on merge, then regenerates CONTEXT.md
 
-website/           Git submodule → {{CLIENT_NAME}} website repo
+```
+
+The website code is **not** in this repo. It lives in its own repo (URL in
+`.agent/project.md` → `Repo (website)`), cloned next to this one and deployed by
+its own pipeline (ATB-142). See
+`docs/decisions/2026-11-23-website-repo-separate-not-submodule.md`.
+
+```
+<workspace>/
+  project_<client>/          this repo — docs, tasks, memory
+  {{WEBSITE_REPO_NAME}}/     website repo — sibling checkout, never a submodule
 ```
 
 ---
@@ -76,7 +86,7 @@ website/           Git submodule → {{CLIENT_NAME}} website repo
 - [ ] Fill in all `{{PLACEHOLDERS}}` in `.agent/project.md`
 - [ ] Write project-specific rules in `.agent/instructions.md`
 - [ ] Fill in `docs/specs/sow-shared.md` from the shared SoW
-- [ ] Add website repo as submodule: `git submodule add [url] website/`
+- [ ] Create the website repo from `AllThatBrand/atb-starter-theme`, write its URL and checkout path in `.agent/project.md`, and clone it next to this repo (no submodule)
 - [ ] Run `python scripts/generate-context.py` locally to verify
 - [ ] Push and confirm `context-update.yml` runs cleanly
 - [ ] Set up n8n daily-digest and sprint-sync workflows

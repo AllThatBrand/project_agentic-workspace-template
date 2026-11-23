@@ -6,6 +6,12 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] — 2026-11-23
+
+### Changed
+- The website repo is no longer a `website/` Git submodule. It is a separate repo, cloned next to the project repo and recorded in `.agent/project.md` (`Repo (website)`, `Website checkout`). ADR: `docs/decisions/2026-11-23-website-repo-separate-not-submodule.md` (ATB-200).
+- `README.md`, the implementation spec (§3, §7) and diagram 5 updated to match.
+
 ## [1.1.0] — 2026-03-26
 
 ### Added

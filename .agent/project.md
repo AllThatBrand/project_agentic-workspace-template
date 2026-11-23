@@ -13,6 +13,7 @@
 ## Tech stack
 - Platform: Framer
 - Repo (website): {{WEBSITE_REPO_URL}}
+- Website checkout: ../{{WEBSITE_REPO_NAME}} (sibling of this repo, never a submodule)
 - Repo (project): {{PROJECT_REPO_URL}}
 - Hosting: Framer hosting
 - CMS: Framer CMS

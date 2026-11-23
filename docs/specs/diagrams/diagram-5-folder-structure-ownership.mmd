@@ -8,7 +8,7 @@ flowchart TD
     ROOT --> DIG["digest/"]
     ROOT --> SCRIPTS["scripts/"]
     ROOT --> GH[".github/workflows/"]
-    ROOT --> WEB["website/ (submodule)"]
+    ROOT -.-> WEB["website repo (sibling checkout,\nown pipeline, not a submodule)"]
 
     AGENT --> CTX[("CONTEXT.md\n🤖 auto · every merge")]
     AGENT --> PROJ[("project.md\n👤 human · once")]
